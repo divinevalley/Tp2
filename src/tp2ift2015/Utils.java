@@ -13,7 +13,7 @@ import java.util.TreeSet;
 public class Utils {
 
 
-	public static String lireFichier(String nomFichier, LinkedHashMap<Character, String> transaction, TreeMap<String, StockMed> stock, TreeMap<String, Integer> commandes) {
+	public static String lireFichier(String nomFichier, TreeMap<String, StockMed> stock, TreeMap<String, Integer> commandes) {
 		String toPrint = "";
 		try{
 			FileReader fileReader = new FileReader(nomFichier);
@@ -27,10 +27,9 @@ public class Utils {
 			while((line = br.readLine()) != null) {
 				linenb++; //pour deboguage 
 				
-				// quand DATE, besoin de traiter immediatement car sur une meme ligne. eg. "DATE aaaa-mm-jj" 
+				// si DATE, besoin de traiter immediatement car sur une meme ligne. eg. "DATE aaaa-mm-jj" 
 				if (line.contains("DATE")) {  
 					transactionType='D';
-					transaction.put(transactionType, null);
 					
 					//lire date et mettre a jour date courante
 					String[] colDate = line.split("\\s+");
@@ -38,47 +37,53 @@ public class Utils {
 					
 					// construire liste Commandes a afficher
 					toPrint += date + " ";
-					String resultatDate = afficherCommandes(line, commandes);
-					toPrint += resultatDate;
+					System.out.println(date + " "); // TODO remove
+					String commandesAAfficher = afficherCommandes(line, commandes);
+					toPrint += commandesAAfficher + "\n";
+					System.out.println(commandesAAfficher + "\n"); //TODO remove
 				}
 
-				// si c'est STOCK, on doit traiter immediatement
+				// si on voit STOCK, on doit traiter immediatement car sur la meme ligne
 				if (line.contains("STOCK")) {  
 					transactionType='S';
-					transaction.put(transactionType, null);
-					// TODO output: print stock,  regarder dans stock et màj (virer les périmés) 
-					toPrint += jeterPerimes(stock, date);
+					// regarder dans stock et màj (virer les périmés), puis afficher le stock actualisé 
+					toPrint += jeterPerimesEtAfficher(stock, date);
+					System.out.println(jeterPerimesEtAfficher(stock, date)); // TODO remove
 				}
 				
-				// on se base toujours sur le codage de la derniere boucle : c'était quel type de transaction
-				// pour APPROV : 
+				// pour les types de transaction APPROV et PRESCRIPTION, on se base sur ce que le code a lu dans la derniere boucle
 				if (transactionType == 'A' && !line.trim().equals(";")) {
-					lancerApprovisionnement(line, stock);					
+					stockerMedicament(line, stock);					
 				}
-				// TODO creer String de sortie : APPROV OK
-				
+
 				// pour PRESCRIPTION : 
-				
 				if (transactionType == 'P' && !line.trim().equals(";")) {
 					String resultatPrescription = lirePrescriptions(line, date, prescrId, stock, commandes);
 					toPrint += resultatPrescription;
+					System.out.println(resultatPrescription); // TODO remove
 				}
 				
-				// pour coder de quelle transaction il s'agit ("DATE", "APPROV", etc)
-				// TODO une fois que le type de transaction change, on met à jour le String de sortie pour le précédent
+				// pour les entêtes ("APPROV", "PRESCRIPTION"), on ne va pas les traiter immédiatement
+				// on va coder le type de transaction pour que la prochaine boucle sache quoi faire
 				if (line.contains("APPROV")) {
 					transactionType='A';
-					transaction.put(transactionType, null);
 				} else if (line.contains("PRESCRIPTION")) {
 					transactionType='P';
-					transaction.put(transactionType, null);
-					toPrint += "PRESCRIPTION " + prescrId + "\n";
-				} else if(line.trim().equals(";")) {
-					toPrint += "\n";
-					if (transactionType=='P') { // A la vue d'un ";", incrémenter numérotation prescription
-						prescrId ++;
-						
+					toPrint += "PRESCRIPTION " + prescrId + "\n"; // afficher "PRESCRIPTION" avec id
+					System.out.println("PRESCRIPTION " + prescrId + "\n"); // TODO remove
+					prescrId ++;
+				} else if(line.trim().equals(";")) { // qd la ligne a juste un ";", mettre entree de ligne
+					switch(transactionType) {
+						case 'P':
+//							prescrId ++; // quand on voit un ";", et la dernière transaction était P, incrémenter prescrId
+							break;
+						case 'A':
+							toPrint += "APPROV OK";
+							System.out.println("APPROV OK"); // TODO remove
+							break;
 					}
+					toPrint += "\n";
+					System.out.println(" ; coucou ; " + linenb + "  \n"); // TODO remove
 					transactionType = 0; // si ";", réinitialiser codage du type pour qu'on ne le traite pas (sauter la ligne)  
 					// TODO add la sortie String ici? 
 				}
@@ -94,7 +99,7 @@ public class Utils {
 	// A partir d'un String aaaa-mm-jj, lire et instancier un objet Date
 	public static Date parseDate(String dateString) {
 		String[] dateDecomposee = dateString.split("-");
-		Date date = new Date (Integer.parseInt(dateDecomposee[0]), Integer.parseInt(dateDecomposee[1]), Integer.parseInt(dateDecomposee[2]));   
+		Date date = new Date (dateDecomposee[0], dateDecomposee[1], dateDecomposee[2]);   
 		return date;
 	}
 
@@ -108,15 +113,16 @@ public class Utils {
 			commandesToPrint = nomMedCommande + " " + qteCommandee + "\n";
 		}
 		
-		String toPrint = commandes.isEmpty() ? "OK\n" : "COMMANDES :\n" + commandesToPrint; 
+		String toPrint = commandes.isEmpty() ? "OK" : "COMMANDES :\n" + commandesToPrint; 
 		commandes.clear(); // vider la liste de commandes
 		return toPrint;
 	}
 	
-	// jeter les médicaments perimés, modifie la TreeMap d'origine 
-	public static String jeterPerimes(TreeMap<String, StockMed> stock, Date date) {
+	// jeter les médicaments perimés, afficher les médicaments en date
+	public static String jeterPerimesEtAfficher(TreeMap<String, StockMed> stock, Date date) {
 		String stockToPrint = "STOCK " + date + "\n";
 		
+		// parcourir tous les médicaments (StockMed) et comparer la date
 		Iterator<Map.Entry<String, StockMed>> iterator = stock.entrySet().iterator();
 		while (iterator.hasNext()) {
 			Map.Entry<String, StockMed> entry = iterator.next();
@@ -126,7 +132,7 @@ public class Utils {
 			
 			if (dateExpiStock.estAvant(date)) { // si périmé, supprimer 
 				iterator.remove();
-			} else { // sinon afficher
+			} else { // sinon afficher le médicament
 				stockToPrint += nomMed + " " + stockMed.getQte() + " " + stockMed.getMedicament().getDateExpi() + "\n";
 			}
 		}
@@ -135,7 +141,7 @@ public class Utils {
 	}
 	
 	// servira pour lire chaque ligne du type A (approv), instancier et ajouter le Médicament au stock 
-	public static void lancerApprovisionnement(String lineALire, TreeMap<String, StockMed> stock) {
+	public static void stockerMedicament(String lineALire, TreeMap<String, StockMed> stock) {
 
 		String[] colApprov = lineALire.split("\\s+"); //split en colonnes. eg. line: Medicament1 120 2018-05-29
 		String nomMedicamentRecu = colApprov[0];
