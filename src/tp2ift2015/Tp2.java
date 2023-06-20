@@ -17,17 +17,15 @@ public class Tp2 {
 		// (garder en memoire format fichier de sortie)
 		String path = "C:\\Users\\Deanna\\Documents\\UdeM\\IFT2015 structures de donnees\\Devoir2\\tests\\";
 		String nomFichier = "exemple4.txt";
-		String toPrint = Utils.lireFichier(path+nomFichier, stockMedicaments, commandes);
 		
+		String toPrint = Utils.lireFichier(path+nomFichier, stockMedicaments, commandes);
 		
 		System.out.println(commandes);
 		
 		System.out.println(toPrint);
 		
-		//print output 
-//		for (String stringSortie : typeTransactions.values()) {
-//			System.out.println(stringSortie);
-//		}
+
+
 		
 
 	}
