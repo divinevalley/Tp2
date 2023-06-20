@@ -39,7 +39,7 @@ public class Utils {
 					// construire liste Commandes a afficher
 					toPrint += date + " ";
 					System.out.print(date + " "); // TODO remove
-					String commandesAAfficher = afficherCommandes(line, commandes);
+					String commandesAAfficher = afficherCommandes(commandes);
 					toPrint += commandesAAfficher + "\n";
 					System.out.print(commandesAAfficher + "\n"); //TODO remove
 				}
@@ -105,15 +105,15 @@ public class Utils {
 	}
 
 	// construire String de commandes a afficher et vider la liste de commandes
-	public static String afficherCommandes(String line, TreeMap<String, Integer> commandes) {
+	public static String afficherCommandes(TreeMap<String, Integer> commandes) {
 
 		String commandesToPrint = "";
 		for (Map.Entry<String, Integer> entry : commandes.entrySet()) { // va pas s'executer si vide
 			String nomMedCommande = entry.getKey();
 			Integer qteCommandee = entry.getValue();
-			commandesToPrint = nomMedCommande + " " + qteCommandee + "\n";
+			commandesToPrint += nomMedCommande + " " + qteCommandee + "\n";
 		}
-		
+		System.out.println(" commandes : " + commandes); //TODO remove
 		String toPrint = commandes.isEmpty() ? "OK" : "COMMANDES :\n" + commandesToPrint; 
 		commandes.clear(); // vider la liste de commandes
 		return toPrint;
@@ -187,8 +187,7 @@ public class Utils {
 		int nbReps = Integer.parseInt(colPrescri[2]); // eg. 6
 		int qteTotaleBesoin = qteParCycle * nbReps; // 5x6 = 30
 		System.out.println("besoin de " + qteTotaleBesoin); //TODO
-//		Prescription prescription = new Prescription(dateCour, idPrescription, nomMedicament, qteParCycle, nbReps);
-//		String indicateurCommande = "";
+
 		String toPrint = "";
 		boolean besoinCommander = true;
 		
@@ -229,13 +228,13 @@ public class Utils {
 					int qteEnStock = medicamentEtQte.getValue();
 					System.out.println("C'est bon! Deuxieme Partie. qte en stock: " + qteEnStock); //TODO
 					// check stock
-					if(qteEnStock > qteTotaleBesoin) { // si pas besoin de tout prendre, on ne prend que ce qu'il faut (quantité exacte)
+					if(qteEnStock > qteTotaleBesoin) { // si stock bien suffisant (pas besoin de tout prendre), on prend la quantité exacte
 						int qteQuiReste = qteEnStock - qteTotaleBesoin;
 						medicamentEtQte.setValue(qteQuiReste); //MAJ qte dans stock
 						qteTotaleBesoin = 0; 
 						besoinCommander = false; // seulement si on arrive à tout remplir, on va mettre false 
 					} else { // si stock insuffisant, 
-						qteTotaleBesoin -= qteEnStock; // on prend TOUT
+						qteTotaleBesoin -= qteEnStock; // on prend TOUT et on passe au prochain médicament
 						itrStock.remove();
 //						System.out.println("======== removing... " + medicamentEtQte);
 					}
@@ -246,6 +245,12 @@ public class Utils {
 
 				}
 			}
+			
+			// TODO reflechir - jsp si besoin de ca ? : 
+			// A la sortie de la boucle, soit on a rempli nos besoins, soit on a itéré sur tout et on est arrivé à la fin (sans avoir la qté totale)  
+			if (qteTotaleBesoin>0) { // donc il faut commander dans ce cas 
+//				commandes.put(nomMedicament, qteTotaleBesoin); 
+			}
 
 			// si on a tout pris d'un certain nomMedicament, supprimer completement du stock
 			if (stock.get(nomMedicament).isEmpty()) {
@@ -253,8 +258,13 @@ public class Utils {
 			}
 		} else { // si n'existe pas du tout dans stock, commander
 			
-//			prescription.setEnStock(false); // rappel: true par defaut // TODO pas besoin attribut ? 
-			commandes.put(nomMedicament, qteTotaleBesoin); 
+			 // need to take into account CUMULATIVE amt (if med already on commande list)
+			if (commandes.containsKey(nomMedicament)) {
+				int totalDejaSurCommande = commandes.get(nomMedicament);
+				commandes.put(nomMedicament, qteTotaleBesoin + totalDejaSurCommande);
+			} else {
+				commandes.put(nomMedicament, qteTotaleBesoin);
+			}
 		}
 		String indicateurCommande = besoinCommander ? "COMMANDE" : "OK";
 		

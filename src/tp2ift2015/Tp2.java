@@ -14,7 +14,7 @@ public class Tp2 {
 		// lire fichier 
 		// (garder en memoire format fichier de sortie)
 		String path = "C:\\Users\\Deanna\\Documents\\UdeM\\IFT2015 structures de donnees\\Devoir2\\tests\\";
-		String nomFichier = "exemple4.txt";
+		String nomFichier = "exemple1.txt";
 		
 		String toPrint = Utils.lireFichier(path+nomFichier, stockMedicaments, commandes);
 		
