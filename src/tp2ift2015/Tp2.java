@@ -1,17 +1,15 @@
 package tp2ift2015;
 
-import java.util.LinkedHashMap;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 public class Tp2 {
 
 	public static void main(String[] args) {
 		
 		// en mémoire universelle : (pas objets) 
-		
 		TreeMap<String, Integer> commandes = new TreeMap<>(); // liste de commandes courante. 
-		TreeMap<String, StockMed> stockMedicaments = new TreeMap<String, StockMed>();
-		// transactions? eg. [A, D, S, P, P, P, P, S, D, A, S]
+		TreeMap<String, TreeMap<Medicament, Integer>> stockMedicaments = new TreeMap<String, TreeMap<Medicament, Integer>>();
 		
 		// lire fichier 
 		// (garder en memoire format fichier de sortie)

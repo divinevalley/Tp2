@@ -4,16 +4,17 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
 public class Utils {
 
 
-	public static String lireFichier(String nomFichier, TreeMap<String, StockMed> stock, TreeMap<String, Integer> commandes) {
+	public static String lireFichier(String nomFichier, TreeMap<String, TreeMap<Medicament, Integer>> stock, TreeMap<String, Integer> commandes) {
 		String toPrint = "";
 		try{
 			FileReader fileReader = new FileReader(nomFichier);
@@ -119,78 +120,138 @@ public class Utils {
 	}
 	
 	// jeter les médicaments perimés, afficher les médicaments en date
-	public static String jeterPerimesEtAfficher(TreeMap<String, StockMed> stock, Date date) {
+	public static String jeterPerimesEtAfficher(TreeMap<String, TreeMap<Medicament, Integer>> stock, Date date) {
 		String stockToPrint = "STOCK " + date + "\n";
 		
-		// parcourir tous les médicaments (StockMed) et comparer la date
-		Iterator<Map.Entry<String, StockMed>> iterator = stock.entrySet().iterator();
-		while (iterator.hasNext()) {
-			Map.Entry<String, StockMed> entry = iterator.next();
+		// parcourir tous les médicaments (StockMed) et comparer la date // TODO profiter du fait que c'est trie par date deja 
+		Iterator<Entry<String, TreeMap<Medicament, Integer>>> itrStock = stock.entrySet().iterator();
+		while (itrStock.hasNext()) {
+			Entry<String, TreeMap<Medicament, Integer>> entry = itrStock.next(); // TODO maj 
 			String nomMed = entry.getKey();
-			StockMed stockMed = entry.getValue();	
-			Date dateExpiStock = stockMed.getMedicament().getDateExpi();
+			TreeMap<Medicament, Integer> mapMedsQuiCorrespon = entry.getValue();
 			
-			if (dateExpiStock.estAvant(date)) { // si périmé, supprimer 
-				iterator.remove();
-			} else { // sinon afficher le médicament
-				stockToPrint += nomMed + " " + stockMed.getQte() + " " + stockMed.getMedicament().getDateExpi() + "\n";
+			//pour un nomMedicament, parcourir les medicaments dans la Map (contient meme med avec diff dates expi)
+			Iterator<Entry<Medicament, Integer>> itrMedicament = mapMedsQuiCorrespon.entrySet().iterator();
+			while(itrMedicament.hasNext()) {
+				Entry<Medicament, Integer> stockMedicament = itrMedicament.next();
+				Date dateExpiStock = stockMedicament.getKey().getDateExpi();
+				if (dateExpiStock.estAvant(date)) { // si périmé, supprimer 
+					itrMedicament.remove();
+				} else { //sinon on va vouloir afficher le medicament
+					stockToPrint += nomMed + " " + stockMedicament.getValue() + " " + dateExpiStock + "\n";
+				}
 			}
+			
+			if (mapMedsQuiCorrespon.isEmpty()){
+				itrStock.remove();
+			} 
 		}
 		
 		return stockToPrint;
 	}
 	
 	// servira pour lire chaque ligne du type A (approv), instancier et ajouter le Médicament au stock 
-	public static void stockerMedicament(String lineALire, TreeMap<String, StockMed> stock) {
+	public static void stockerMedicament(String lineALire, TreeMap<String, TreeMap<Medicament, Integer>> stock) {
 
 		String[] colApprov = lineALire.split("\\s+"); //split en colonnes. eg. line: Medicament1 120 2018-05-29
 		String nomMedicamentRecu = colApprov[0];
-		int qteMedicamentRecu = Integer.parseInt(colApprov[1]);
+		int qteRecu = Integer.parseInt(colApprov[1]);
 		Date dateExpiMedic = parseDate(colApprov[2]);   
-		Medicament medRecu = new Medicament(nomMedicamentRecu, dateExpiMedic);
+		Medicament medicamentRecu = new Medicament(nomMedicamentRecu, dateExpiMedic);
 		
 		// TODO gerer si on l'a deja pour en rajouter au stock
-		StockMed stockMed = new StockMed(medRecu, qteMedicamentRecu);
-		stock.put(nomMedicamentRecu, stockMed); //ajouter à notre stock existant
-//		System.out.println(stock);
+		if (!stock.containsKey(nomMedicamentRecu)) { // si ca n'existe pas du tout dans le stock, creer
+			TreeMap<Medicament, Integer> newMapPourCeNomMed = new TreeMap<>();
+			newMapPourCeNomMed.put(medicamentRecu, qteRecu);
+			stock.put(nomMedicamentRecu, newMapPourCeNomMed);
+		} else { // si ca existe 
+			TreeMap<Medicament, Integer> mapCorrespondante = stock.get(nomMedicamentRecu);
+			if (mapCorrespondante.containsKey(medicamentRecu)) {   // si le médicament exacte existe, on a juste besoin de maj la qté
+				qteRecu += mapCorrespondante.get(medicamentRecu);
+			}
 
+			mapCorrespondante.put(medicamentRecu, qteRecu); // dans tous les cas, màj la map 
+		}
+		System.out.println(stock);
 	}
 
-// parser la liste de médicaments prescrits, instancier objets Prescriptions, commander si besoin
-	public static String lirePrescriptions(String lineALire, Date dateCour, int idPrescription, TreeMap<String, StockMed> stock, TreeMap<String, Integer> commandes){
+// parser la liste de médicaments prescrits, instancier objets Prescriptions, soustraire des stocks, ou commander si besoin,   
+	public static String lirePrescriptions(String lineALire, Date dateCour, int idPrescription, TreeMap<String, TreeMap<Medicament, Integer>> stock, TreeMap<String, Integer> commandes){
 		
 		String[] colPrescri = lineALire.split("\\s+|\t"); //split en colonnes. eg. line: Medicament1    5       6 
 		String nomMedicament = colPrescri[0]; // eg. Medicament1
 		int qteParCycle = Integer.parseInt(colPrescri[1]); // eg. 5
 		int nbReps = Integer.parseInt(colPrescri[2]); // eg. 6
-		int qteTotale = qteParCycle * nbReps; // 5x6 = 30
+		int qteTotaleBesoin = qteParCycle * nbReps; // 5x6 = 30
 		Prescription prescription = new Prescription(dateCour, idPrescription, nomMedicament, qteParCycle, nbReps);
-
-		
+//		String indicateurCommande = "";
 		String toPrint = "";
-		String indicateurCommande = "OK";
+		boolean besoinCommander = true;
 		
-		// si besoin commander, marquer le médicament dans la prescription comme commandé et l'ajouter à la liste de commandes  
-		if (besoinCommander(dateCour, nomMedicament, qteTotale, stock)) { 
-			prescription.setEnStock(false); // rappel: true par defaut 
-			commandes.put(nomMedicament, qteTotale); 
-			indicateurCommande = "COMMANDE";
+		
+		Date besoinJusquau = dateCour.dateApresXJours(qteTotaleBesoin);
+		
+		if (stock.containsKey(nomMedicament)){ // si med existe, on va essayer, soustraire des stocks
+			
+			//itérer sur nos Medicaments (medicament-date), voir date
+			Iterator<Entry<Medicament,Integer>> itrStock = stock.get(nomMedicament).entrySet().iterator();
+			
+			while(itrStock.hasNext() && qteTotaleBesoin > 0) { // tant qu'il y a du stock à explorer et qu'on n'a pas encore rempli Rx   
+				Entry<Medicament, Integer> medicamentEtQte = itrStock.next(); 
+				int qteEnStock = medicamentEtQte.getValue();
+				
+				if(qteEnStock > qteTotaleBesoin) { // si pas besoin de tout prendre, on ne prend que ce qu'il faut (quantité exacte)
+					int qteQuiReste = qteEnStock - qteTotaleBesoin;
+					medicamentEtQte.setValue(qteQuiReste); //MAJ qte dans stock
+					qteTotaleBesoin = 0; 
+					besoinCommander = false; // seulement si on arrive à tout remplir, on va mettre false 
+				} else { // si stock insuffisant, 
+					qteTotaleBesoin -= qteEnStock; // on prend TOUT
+					itrStock.remove();
+//					System.out.println("======== removing... " + medicamentEtQte);
+				}
+			}
+			
+			// qd on sort, ça veut dire que, soit (1) on a tout ce qu'il nous faut, soit (2) on a terminé mais il en manque encore... possible besoin de commander
+
+			// si on a tout pris, supprimer completement du stock
+			if (stock.get(nomMedicament).isEmpty()) { // TODO: is this ok? 
+				stock.remove(nomMedicament); 
+			}
+		} else { // si besoin commander, ajouter à la liste de commandes
+			
+			prescription.setEnStock(false); // rappel: true par defaut // TODO pas besoin attribut ? 
+			commandes.put(nomMedicament, qteTotaleBesoin); 
 		}
+		String indicateurCommande = besoinCommander ? "COMMANDE" : "OK";
 		
 //		System.out.println(prescription);
 		toPrint += nomMedicament + " " + qteParCycle + " " + nbReps + " " + indicateurCommande + "\n"; 
-		
 		return toPrint;
 	}
 	
-	public static boolean besoinCommander(Date dateCour, String nomMedicament, int besoinQteTotale, TreeMap<String, StockMed> stock) {
+	// sera appelée dans lirePrescriptions()
+	// si besoin commander, return int qte à commander
+	public static boolean besoinCommander(Date dateCour, String nomMedicament, int besoinQteTotale, TreeMap<String, TreeMap<Medicament, Integer>> stock) {
 		Date besoinJusquau = dateCour.dateApresXJours(besoinQteTotale);
 		Boolean besoinCommander = false; 
-		
-		// si stock expire avant dateBesoin, marquer comme pas en stock et commander (ajouter à commandes)
-		if (stock.containsKey(nomMedicament)) { // check stock existe
-			if (stock.get(nomMedicament).getMedicament().getDateExpi().estAvant(besoinJusquau)) { //check date stock 
-				besoinCommander = true;
+
+		if (stock.containsKey(nomMedicament)) { // si le nomMedicament existe dans notre stock 
+			TreeMap<Medicament, Integer> medicamentsQuiCorrespon = stock.get(nomMedicament);
+			
+			Iterator<Entry<Medicament, Integer>> itr = medicamentsQuiCorrespon.entrySet().iterator();
+			while(itr.hasNext() && besoinQteTotale>0) {
+				Entry<Medicament, Integer> medicamentEtQte = itr.next();
+				int qteEnStock = medicamentEtQte.getValue();
+				
+				if(qteEnStock < besoinQteTotale) { // si stock insuffisant,
+					besoinQteTotale -= qteEnStock; // prend TOUT, et on diminue le besoin (jusqu'à 0) 
+				}
+			}
+			
+			
+			if (medicamentsQuiCorrespon.firstKey().getDateExpi().estAvant(besoinJusquau)) { //check date stock 
+				besoinCommander = true;  // TODO. on doit continuer et regarder le prochain médicament et sa date 
 			}
 		} else { // si stock existe pas, commander 
 			besoinCommander = true;

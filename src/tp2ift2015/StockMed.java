@@ -1,6 +1,6 @@
 package tp2ift2015;
 
-public class StockMed {
+public class StockMed implements Comparable <StockMed>{
 	private Medicament medicament;
 	private int qte;
 	
@@ -28,6 +28,11 @@ public class StockMed {
 	@Override
 	public String toString() {
 		return medicament + ", qte=" + qte;
+	}
+
+	@Override
+	public int compareTo(StockMed autre) { // on va vouloir un tri par ordre de date d'expi
+		return this.medicament.getDateExpi().convertirDateEnInt() - autre.medicament.getDateExpi().convertirDateEnInt();
 	} 
 	
 	

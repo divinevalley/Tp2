@@ -16,7 +16,7 @@ public class Date {
 		jjInt = Integer.parseInt(jj);
 		
 		// valider date
-		if (jjInt < nbJoursParMois(mmInt, aaaaInt) && aaaaInt>0 && mmInt > 0 && jjInt > 0) { 
+		if (jjInt <= nbJoursParMois(mmInt, aaaaInt) && aaaaInt>0 && mmInt > 0 && jjInt > 0 && mmInt<13) { 
 			// (on ne veut pas de trucs 2020-31-02, on verifie qu'il y a aucun negatif) 
 			this.aaaa = aaaa;
 			this.mm = mm;
@@ -83,25 +83,25 @@ public class Date {
 	}
 
 	// retourner un int qui représente le nombre de jours depuis le 2000-01-01 	(inclusif)
-//	public int convertirDateEnInt() {
-//		int anneeThis = Integer.parseInt(aaaa);
-//		int moisThis = Integer.parseInt(mm);
-//		int jourThis = Integer.parseInt(jj);
-//
-//		int nbJours = 0; //counter 
-//		
-//		int nbAnneesBissextilesPassees = 1 + (anneeThis - 2000)/4; // eg. on est 2005, on compte 1 pour l'année 2000, puis on fait 5/4 => 1 + 1 => 2 annees (2000, 2004)
-//		nbAnneesBissextilesPassees += estBissextile(anneeThis) ? -1 : 0; // ajustement si bissextile 
-//		nbJours += (anneeThis - 2000) * 365 + (1 * nbAnneesBissextilesPassees); // + nb jours depuis 2000 jusqu'à cette année 
-//		
-//		for (int i = 1; i < moisThis; i++) { // + nb jours dans les mois passés de cette année 
-//			nbJours += nbJoursParMois(i, anneeThis);
-//		}
-//
-//		nbJours += jourThis; // + nb jours ce mois ci 
-//
-//		return nbJours;
-//	}
+	public int convertirDateEnInt() { //TODO re-test
+		int anneeThis = Integer.parseInt(aaaa);
+		int moisThis = Integer.parseInt(mm);
+		int jourThis = Integer.parseInt(jj);
+
+		int nbJours = 0; //counter 
+		
+		int nbAnneesBissextilesPassees = 1 + (anneeThis - 2000)/4; // eg. on est 2005, on compte 1 pour l'année 2000, puis on fait 5/4 => 1 + 1 => 2 annees (2000, 2004)
+		nbAnneesBissextilesPassees += estBissextile(anneeThis) ? -1 : 0; // ajustement si bissextile 
+		nbJours += (anneeThis - 2000) * 365 + (1 * nbAnneesBissextilesPassees); // + nb jours depuis 2000 jusqu'à cette année 
+		
+		for (int i = 1; i < moisThis; i++) { // + nb jours dans les mois passés de cette année 
+			nbJours += nbJoursParMois(i, anneeThis);
+		}
+
+		nbJours += jourThis; // + nb jours ce mois ci 
+
+		return nbJours;
+	}
 	
 	public static int nbJoursParMois(int mois, int annee) {
 		int nbJours = 31; // par defaut
