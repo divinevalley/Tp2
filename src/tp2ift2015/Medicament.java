@@ -22,7 +22,6 @@ public class Medicament implements Comparable<Medicament>{
 		return nomMedicament + ", dateExpi=" + dateExpi;
 	}
 
-	// TODO plus besoin ? 
 	@Override
 	public int compareTo(Medicament autre) { // on va vouloir un tri par ordre de date d'expi
 		return this.dateExpi.convertirDateEnInt() - autre.dateExpi.convertirDateEnInt();

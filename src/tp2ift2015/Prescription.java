@@ -1,5 +1,5 @@
 package tp2ift2015;
-
+// TODO plus besoin de class? 
 public class Prescription {
 	
 	// eg. Medicament1    5       6 
@@ -9,7 +9,7 @@ public class Prescription {
 	private int nbReps; // 6
 	private int qteTotaleCalculee; // 5x6 = 30
 	private String nomMedicament; // Medicament1
-	private boolean enStock; // true if "ok"; false if "commande" 
+//	private boolean enStock; // true if "ok"; false if "commande"  // <- TODO plus besoin? 
 	
 	
 	public Prescription(Date datePrescrit, int id,  String nomMedicaments, int qteParCycle, int nbReps) {
@@ -19,7 +19,7 @@ public class Prescription {
 		this.nbReps = nbReps;
 		this.qteTotaleCalculee = qteParCycle * nbReps; // on automatise le calcul de la qte totale 
 		this.nomMedicament = nomMedicaments;
-		this.enStock = true; // default true
+//		this.enStock = true; // default true
 	}
 	
 	public Date getDatePrescrit() {
@@ -56,17 +56,17 @@ public class Prescription {
 		return nomMedicament;
 	}
 	
-	public boolean estEnStock() {
-		return enStock;
-	}
-	public void setEnStock(boolean enStock) {
-		this.enStock = enStock;
-	}
+//	public boolean estEnStock() {
+//		return enStock;
+//	}
+//	public void setEnStock(boolean enStock) {
+//		this.enStock = enStock;
+//	}
 
 	@Override
 	public String toString() {
 		return "PRESCRIPTION " + id + " "+ datePrescrit + ", " + nomMedicament + " " +  qteParCycle
-				+ "x" + nbReps + "=" + qteTotaleCalculee + ", enStock?=" + enStock;
+				+ "x" + nbReps + "=" + qteTotaleCalculee; // plus besoin de + enStock 
 	}
 	
 	

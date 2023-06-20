@@ -1,5 +1,7 @@
 package tp2ift2015;
 
+// TODO supprimer cette classe? 
+
 public class StockMed implements Comparable <StockMed>{
 	private Medicament medicament;
 	private int qte;
