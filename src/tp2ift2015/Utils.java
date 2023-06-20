@@ -182,18 +182,20 @@ public class Utils {
 		
 		String[] colPrescri = lineALire.split("\\s+|\t"); //split en colonnes. eg. line: Medicament1    5       6 
 		String nomMedicament = colPrescri[0]; // eg. Medicament1
+		System.out.println("-----------\n nomMedicament: " + nomMedicament); //TODO
 		int qteParCycle = Integer.parseInt(colPrescri[1]); // eg. 5
 		int nbReps = Integer.parseInt(colPrescri[2]); // eg. 6
 		int qteTotaleBesoin = qteParCycle * nbReps; // 5x6 = 30
+		System.out.println("besoin de " + qteTotaleBesoin); //TODO
 //		Prescription prescription = new Prescription(dateCour, idPrescription, nomMedicament, qteParCycle, nbReps);
 //		String indicateurCommande = "";
 		String toPrint = "";
 		boolean besoinCommander = true;
 		
+		System.out.println("date auj: " + dateCour);
 		Date besoinJusquau = dateCour.dateApresXJours(qteTotaleBesoin);
-		
+		System.out.println("besoin jusqua " + besoinJusquau);
 		if (stock.containsKey(nomMedicament)){ // si med existe
-
 
 			// controlleurs boucle while: 
 			boolean premierePartie = true;
@@ -201,24 +203,31 @@ public class Utils {
 
 			//itérer sur nos Medicaments (medicament-date), voir date
 			Iterator<Entry<Medicament,Integer>> itrStock = stock.get(nomMedicament).entrySet().iterator();
-			boolean dateExpiTropTot = true;
+			
 			while(itrStock.hasNext()) {
+				Entry<Medicament, Integer> medicamentEtQte = itrStock.next(); // avancer itr
+				System.out.println("avancer itr... " + medicamentEtQte);
 				
 				if (premierePartie) { // avancer itr jusq au premier med en date
-					// avancer itr
-					Entry<Medicament, Integer> medicamentEtQte = itrStock.next(); 
+
 					Date dateExpiMed = medicamentEtQte.getKey().getDateExpi();
+					System.out.println("Premiere Partie\nDateExpiMed " + dateExpiMed);
 					
-					dateExpiTropTot = dateExpiMed.estAvant(besoinJusquau); // donne false si on arrive à un méd qui sera en date pour toute la durée. false => sortir boucle 
+					boolean dateExpiTropTot = dateExpiMed.estAvant(besoinJusquau); // donne false si on arrive à un méd qui sera en date pour toute la durée. false => sortir boucle
+					System.out.println("dateexpitroptot = " + dateExpiTropTot); //TODO
+
 					premierePartie =  dateExpiTropTot; // (WHILE condition --> va devenir false)
 					deuxiemePartie = !premierePartie; // qd 1ere partie se desactive, ça active la 2e partie boucle
-					continue;
+					
+					if (premierePartie) { // une fois que c'est false, on va directement à la deuxième partie (sans itérer Next)
+						continue;
+					}
+					
 				}
-				Entry<Medicament, Integer> medicamentEtQte = itrStock.next(); // avancer itr
 				if (deuxiemePartie) { //mnt on est au bon médic en date. check stock 
 					
 					int qteEnStock = medicamentEtQte.getValue();
-					
+					System.out.println("C'est bon! Deuxieme Partie. qte en stock: " + qteEnStock); //TODO
 					// check stock
 					if(qteEnStock > qteTotaleBesoin) { // si pas besoin de tout prendre, on ne prend que ce qu'il faut (quantité exacte)
 						int qteQuiReste = qteEnStock - qteTotaleBesoin;
@@ -237,13 +246,12 @@ public class Utils {
 
 				}
 			}
-			
 
 			// si on a tout pris d'un certain nomMedicament, supprimer completement du stock
-			if (stock.get(nomMedicament).isEmpty()) { // TODO: is this ok? 
+			if (stock.get(nomMedicament).isEmpty()) {
 				stock.remove(nomMedicament); 
 			}
-		} else { // si besoin commander, ajouter à la liste de commandes
+		} else { // si n'existe pas du tout dans stock, commander
 			
 //			prescription.setEnStock(false); // rappel: true par defaut // TODO pas besoin attribut ? 
 			commandes.put(nomMedicament, qteTotaleBesoin); 
