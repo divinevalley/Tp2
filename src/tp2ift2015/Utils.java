@@ -47,12 +47,13 @@ public class Utils {
 				// si on voit STOCK, on doit traiter immediatement car sur la meme ligne
 				if (line.contains("STOCK")) {  
 					transactionType='S';
-					// regarder dans stock et màj (virer les périmés), puis afficher le stock actualisé 
+					// regarder dans stock et màj (jeter les périmés), puis afficher le stock actualisé 
 					toPrint += jeterPerimesEtAfficher(stock, date);
 					System.out.print(jeterPerimesEtAfficher(stock, date)); // TODO remove
 				}
 				
 				if (line.contains(";")) {
+					// le ";" signale que c'est la fin de la transaction. c'est comme ça qu'on sait qu'on a fini la transaction APPROV  
 					if (transactionType== 'A') {
 						toPrint += "APPROV OK";
 						System.out.print("APPROV OK"); // TODO remove
@@ -84,11 +85,8 @@ public class Utils {
 					toPrint += "PRESCRIPTION " + prescrId + "\n"; // afficher "PRESCRIPTION" avec id
 					System.out.print("PRESCRIPTION " + prescrId + "\n"); // TODO remove
 					prescrId ++;
-				} else if(line.trim().equals(";")) { // qd la ligne a juste un ";", mettre entree de ligne
-
-				}
+				} 
 			}
-			// TODO add la sortie String ici? 
 		} catch (IOException e) {
 			System.err.println("Error reading file: " + e.getMessage());
 			System.out.println("Absolute path:" + new File(nomFichier).getAbsolutePath());
@@ -136,7 +134,7 @@ public class Utils {
 				Entry<Medicament, Integer> stockMedicament = itrMedicament.next();
 				Date dateExpiStock = stockMedicament.getKey().getDateExpi();
 				if (dateExpiStock.estAvant(date)) { // si périmé, supprimer 
-					System.out.println(nomMed + " " + stockMedicament.getValue() + " " + dateExpiStock + "perime!");
+					System.out.println(nomMed + " " + stockMedicament.getValue() + " " + dateExpiStock + " perime!");
 					itrMedicament.remove();
 				} else { //sinon afficher le medicament
 					stockToPrint += nomMed + " " + stockMedicament.getValue() + " " + dateExpiStock + "\n";
@@ -173,7 +171,7 @@ public class Utils {
 
 			mapCorrespondante.put(medicamentRecu, qteRecu); // dans tous les cas, màj la map 
 		}
-		System.out.println(stock);
+//		System.out.println(stock);
 	}
 
 // parser la liste de médicaments prescrits, soustraire des stocks, ou commander si besoin,   
