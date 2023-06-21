@@ -171,7 +171,7 @@ public class Utils {
 
 			mapCorrespondante.put(medicamentRecu, qteRecu); // dans tous les cas, màj la map 
 		}
-//		System.out.println(stock);
+		System.out.println("stock : " + stock);
 	}
 
 // parser la liste de médicaments prescrits, soustraire des stocks, ou commander si besoin,   
@@ -186,7 +186,7 @@ public class Utils {
 		System.out.println("besoin de " + qteTotaleBesoin); //TODO
 
 		String toPrint = "";
-		boolean besoinCommander = false;
+		boolean besoinCommander = true;
 		
 		System.out.println("date auj: " + dateCour);
 		Date besoinJusquau = dateCour.dateApresXJours(qteTotaleBesoin);
@@ -198,27 +198,33 @@ public class Utils {
 
 			//itérer sur nos Medicaments (medicament-date), voir date
 			Iterator<Entry<Medicament,Integer>> itrStock = stock.get(nomMedicament).entrySet().iterator(); 
-			nbMedsACommander = compterNbMedicamentsACommander(itrStock, besoinJusquau, qteTotaleBesoin, false); //compter si stock (en date) est suffisant 	
-
-			// on a compté. il est possible que les méd en stock en date soit insuffisant   
-			if (nbMedsACommander>0) { // donc il faut commander dans ce cas 
-				commandes.put(nomMedicament, nbMedsACommander); 
-				besoinCommander = true;
-			} else {// sinon, ca veut dire nbMedsACommander = 0, donc pas besoin de commander. 
-				//decrementer stock
-				itrStock = stock.get(nomMedicament).entrySet().iterator(); //reinitialiser itr au debut
-				int result = compterNbMedicamentsACommander(itrStock, besoinJusquau, qteTotaleBesoin, true);
-				System.out.println("*********result (should be 0): " + result);
+			while(itrStock.hasNext() && besoinCommander == true) {
+				Entry<Medicament,Integer> nextMed = itrStock.next();
+				Date dateExpiMedicamentStock =  nextMed.getKey().getDateExpi();
+				int qteEnStock = nextMed.getValue();
+				
+				// si en date ET qte suffisante pour prendre tout ce qu'il nous faut (il faut tout prendre du meme lot)
+				if (besoinJusquau.estAvant(dateExpiMedicamentStock) && (qteEnStock > qteTotaleBesoin)) {
+					// on decremente le stock 
+					nextMed.setValue(qteEnStock - qteTotaleBesoin);
+					besoinCommander = false; // => sortir boucle
+				} else if (besoinJusquau.estAvant(dateExpiMedicamentStock) && (qteEnStock == qteTotaleBesoin)) {
+					// il y a exactement la qté qu'il faut, on supprime du stock
+					itrStock.remove();
+					besoinCommander = false; // ==> sortir boucle
+				}
 			}
-
-			// si on a tout pris d'un certain nomMedicament, supprimer completement du stock
+			//menage du stock: si on a tout pris d'un certain nomMedicament, supprimer completement du stock
 			if (stock.get(nomMedicament).isEmpty()) {
 				System.out.println("nomMed n'existe plus! on supprime du stock! ");
 				stock.remove(nomMedicament); 
 			}
-		} else { // si nom medicament n'existe pas du tout dans stock, commander
-			System.out.println("n'existe pas du tout. commander.");
-			besoinCommander = true;
+		}
+		
+		//sorti de la boucle, toujours possible besoin commander
+		if (besoinCommander == true) {
+			System.out.println("commander.");
+			
 			 // need to take into account CUMULATIVE amt (if med already on commande list)
 			if (commandes.containsKey(nomMedicament)) {
 				int totalDejaSurCommande = commandes.get(nomMedicament);
@@ -227,76 +233,12 @@ public class Utils {
 				commandes.put(nomMedicament, nbMedsACommander);
 			}
 		}
+			
 		String indicateurCommande = besoinCommander ? "COMMANDE" : "OK";
 		
 //		System.out.println(prescription);
 		toPrint += nomMedicament + " " + qteParCycle + " " + nbReps + " " + indicateurCommande + "\n"; 
 		return toPrint;
-	}
-	
-	
-	
-	
-	
-	// en gros on "essaie" de rempli au besoin et voit si on arrive ou pas. Ca permet de savoir si on en a assez en stock en date ou pas. avant qu'on le décremente "pour de vrai" 
-	private static int compterNbMedicamentsACommander(Iterator<Entry<Medicament,Integer>> itrStock, Date besoinJusquau, int qteTotaleBesoin, boolean decrementerStock) {
-		System.out.println("function is running! boolean = " + decrementerStock);
-		// controlleurs boucle while: 
-		boolean premierePartie = true;
-		boolean deuxiemePartie = false;
-		
-		int qteBesoinADecrementer = qteTotaleBesoin; // on a besoin que qteTotaleBesoin reste le meme, pour servir de référence 
-
-		while(itrStock.hasNext()) {
-			Entry<Medicament, Integer> medicamentEtQte = itrStock.next(); // avancer itr
-			System.out.println("avancer itr... " + medicamentEtQte);
-			
-			if (premierePartie) { // avancer itr jusq au premier med en date
-
-				Date dateExpiMed = medicamentEtQte.getKey().getDateExpi();
-				System.out.println("Premiere Partie\nDateExpiMed " + dateExpiMed);
-				
-				boolean dateExpiTropTot = dateExpiMed.estAvant(besoinJusquau); // donne false si on arrive à un méd qui sera en date pour toute la durée. false => sortir boucle
-				System.out.println("dateexpitroptot = " + dateExpiTropTot); //TODO remove
-
-				premierePartie =  dateExpiTropTot; // (WHILE condition --> va devenir false)
-				deuxiemePartie = !premierePartie; // qd 1ere partie se desactive, ça active la 2e partie boucle
-				
-				if (premierePartie) { // une fois que c'est false, on va directement à la deuxième partie (sans itérer Next)
-					continue;
-				}
-				
-			}
-			if (deuxiemePartie) { //mnt on est au bon médic en date. check stock 
-				
-				int qteEnStock = medicamentEtQte.getValue();
-				System.out.println("C'est bon! trouvé méd en date. Deuxieme Partie. qte en stock: " + qteEnStock); //TODO remove
-				// check stock
-				if(qteEnStock > qteBesoinADecrementer) { // si stock est plus que suffisant, on prend la quantité exacte
-					int qteQuiReste = qteEnStock - qteBesoinADecrementer;
-					System.out.println("decrementerStock: " + decrementerStock);
-					if (decrementerStock) {
-						System.out.println("setting value... " + medicamentEtQte + " value : " + qteQuiReste);
-						medicamentEtQte.setValue(qteQuiReste); //MAJ qte dans stock // XXX  ne pas faire si false 
-					}
-					qteBesoinADecrementer = 0; 
-					deuxiemePartie = false; // => sortir boucle		
-	
-				} else { // si stock insuffisant, 
-					qteBesoinADecrementer -= qteEnStock; // on prend TOUT et on passe au prochain médicament
-					
-					if (decrementerStock) {
-						itrStock.remove(); // XXX ne pas faire si false	
-					}
-					 
-//					System.out.println("======== removing... " + medicamentEtQte);
-				}
-
-			}
-		}
-		
-		return qteBesoinADecrementer; // si on a tout ce qu'il nous faut, ce sera 0. sinon, ce serait le nb à commander. 
-
 	}
 	
 }
