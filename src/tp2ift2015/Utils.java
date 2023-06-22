@@ -237,10 +237,12 @@ public class Utils {
 	 * PRESCRIPTION
 	 * Parser la liste de médicaments prescrits, soustraire des stocks, ou commander si besoin
 	 * 
-	 * Complexité de cette fonction seule : O(n + log(k))
+	 * Complexité de cette fonction seule : O(p + log(k) + log(n)) car recherche dichotomique 
+	 * dans n types de médicaments du stock, recherche dichotomique dans les k commandes, 
+	 * et itération sur les p médicaments partageant le même nom. 
 	 * Mais vu que cette fonction va boucler pour chacune des m lignes d'une prescription, 
-	 * la complexité globale sera de O(m*(p +log(k) + log(n))), ce que qui peut être  
-	 * simplifié à O(m*(log(n))), en supposant que k <= n et p <= n. 
+	 * la complexité globale sera de O(m*(p +log(k) + log(n))). Cela peut être  
+	 * simplifié à O(m*(log(n))), car on sait que k <= n et p <= n. 
 	 * 
 	 * 
 	 * @param lineALire
