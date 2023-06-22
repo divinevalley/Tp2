@@ -239,10 +239,9 @@ public class Utils {
 	 * 
 	 * Complexité de cette fonction seule : O(p + log(k) + log(n)) car recherche dichotomique 
 	 * dans n types de médicaments du stock, recherche dichotomique dans les k commandes, 
-	 * et itération sur les p médicaments partageant le même nom. 
-	 * Mais vu que cette fonction va boucler pour chacune des m lignes d'une prescription, 
-	 * la complexité globale sera de O(m*(p +log(k) + log(n))). Cela peut être  
-	 * simplifié à O(m*(log(n))), car on sait que k <= n et p <= n. 
+	 * et itération sur les p médicaments partageant le même nom (mais différentes dates 
+	 * d'expiration). Vu que cette fonction va boucler pour chacune des m lignes d'une prescription, 
+	 * la complexité globale sera de O(m*(p +log(k) + log(n))). 
 	 * 
 	 * 
 	 * @param lineALire
