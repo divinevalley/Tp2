@@ -15,7 +15,7 @@ import java.util.TreeMap;
  * 
  * Les complexités temporelles devraient être exprimées en fonction de : 
  * n indique le nombre de types de médicaments différents; 
- * m indique le nombre d'items sur la prescription
+ * m indique le nombre d'items sur la prescription;
  * k indique le nombre d'items sur la liste de demande; 
  * p indique le nombre de médicaments (maximal) partageant le même type; 
  * q représente le nombre d'items sur APPROV au total, que ces médicaments soient du 
@@ -24,16 +24,15 @@ import java.util.TreeMap;
 public class Utils {
 
 	/***
-	 * Cette fonction sert à parser le fichier d'entrée, traiter les données, et renvoie le String final à mettre dans le fichier de sortie.
-	 * Cette fonction appelle d'autres fonctions afficherCommandes(), lirePrescription(), jeterPerimesEtAfficher(), stockerMedicament()    
+	 * Cette fonction sert à parser le fichier d'entrée, traiter les données, et renvoie le String final à mettre dans le fichier de sortie.    
 	 * 
 	 * @param nomFichier
 	 * @param stock
 	 * @param commandes
-	 * @return String à mettre dans le contenu du fichier (sera passé comme paramètre dans creerFichierFinal())  
+	 * @return String contenu final du fichier txt (sera passé comme paramètre dans creerFichierFinal())  
 	 */
 	public static String lireFichier(String nomFichier, TreeMap<String, TreeMap<Medicament, Integer>> stock, TreeMap<String, Integer> commandes) {
-		String toPrint = "";
+		StringBuilder toPrint = new StringBuilder();
 		try{
 			FileReader fileReader = new FileReader(nomFichier);
 			BufferedReader br = new BufferedReader(fileReader);
@@ -55,24 +54,24 @@ public class Utils {
 					date = parseDate(colDate[1]); 
 
 					// construire liste Commandes a afficher
-					toPrint += date + " ";
+					toPrint.append(date + " ");
 					String commandesAAfficher = afficherCommandes(commandes);
-					toPrint += commandesAAfficher;
+					toPrint.append(commandesAAfficher);
 				}
 
 				// si on voit STOCK, on doit traiter immediatement car sur la meme ligne
 				if (line.contains("STOCK")) {  
 					transactionType='S';
 					// regarder dans stock et màj (jeter les périmés), puis afficher le stock actualisé 
-					toPrint += jeterPerimesEtAfficher(stock, date); // O (n*p)
+					toPrint.append(jeterPerimesEtAfficher(stock, date)); // O (n*p)
 				}
 
 				if (line.contains(";")) {
 					// le ";" signale que c'est la fin de la transaction. C'est comme ça qu'on sait qu'on a fini la transaction APPROV  
 					if (transactionType== 'A') {
-						toPrint += "APPROV OK";
+						toPrint.append("APPROV OK");
 					}
-					toPrint += "\n";
+					toPrint.append("\n");
 					transactionType = 0; // si ";", réinitialiser codage du type pour qu'on ne le traite pas (sauter la ligne)  
 				}
 
@@ -84,7 +83,7 @@ public class Utils {
 				// pour PRESCRIPTION :
 				if (transactionType == 'P' && !line.trim().equals(";")) {
 					String resultatPrescription = lirePrescriptions(line, date, stock, commandes); // Complexité O(N + log(k))
-					toPrint += resultatPrescription;
+					toPrint.append(resultatPrescription);
 				}
 
 				// Pour les entêtes ("APPROV", "PRESCRIPTION"), on ne va pas les traiter immédiatement
@@ -93,7 +92,7 @@ public class Utils {
 					transactionType='A';
 				} else if (line.contains("PRESCRIPTION")) {
 					transactionType='P';
-					toPrint += "PRESCRIPTION " + prescrId + "\n"; // afficher "PRESCRIPTION" avec id
+					toPrint.append("PRESCRIPTION " + prescrId + "\n"); // afficher "PRESCRIPTION" avec id
 					prescrId ++;
 				} 
 			}
@@ -101,14 +100,14 @@ public class Utils {
 			System.err.println("Error reading file: " + e.getMessage());
 			System.out.println("Absolute path:" + new File(nomFichier).getAbsolutePath());
 		}
-		return toPrint;
+		return toPrint.toString();
 	}
 
 	/***
 	 * A partir d'un String aaaa-mm-jj, lire et instancier un objet Date
 	 * 
 	 * @param dateString
-	 * @return objet Date
+	 * @return objet Date lu
 	 */
 	public static Date parseDate(String dateString) {
 		String[] dateDecomposee = dateString.split("-");
@@ -129,11 +128,11 @@ public class Utils {
 	 */
 	public static String afficherCommandes(TreeMap<String, Integer> commandes) {
 
-		String commandesToPrint = "";
+		StringBuilder commandesToPrint = new StringBuilder();
 		for (Map.Entry<String, Integer> entry : commandes.entrySet()) { // va pas s'executer si vide
 			String nomMedCommande = entry.getKey(); // O(1) car on est déjà sur l'élément 
 			Integer qteCommandee = entry.getValue(); // O(1) 
-			commandesToPrint += nomMedCommande + " " + qteCommandee + "\n";
+			commandesToPrint.append(nomMedCommande + " " + qteCommandee + "\n");
 		}
 
 		String toPrint = commandes.isEmpty() ? "OK\n" : "COMMANDES :\n" + commandesToPrint; 
@@ -145,12 +144,12 @@ public class Utils {
 	 * DATE 
 	 * Jeter les médicaments perimés, afficher les médicaments en date
 	 * 
-	 * Complexité : O(n*p), où n indique le nombre de types de médicaments différents
-	 * et p indique le nombre (maximal) de médicaments du même type  
+	 * Complexité : O(q), où q indique le nombre de médicaments au total
+	 * (on pourrait aussi dire O(n*p))  
 	 * 
-	 * (et donc n * p = médicaments au total)
+	 * (n*p >= médicaments au total)
 	 * 
-	 * Les deux boucles for servent à parcourir tous les n*p éléments qui
+	 * Les deux boucles for servent à parcourir tous les q éléments qui
 	 * sont stockés dans une TreeMap dans une TreeMap (chaque médicament  
 	 * est repertorié qu'une seule fois). Par exemple : 
 	 * 
@@ -160,17 +159,20 @@ public class Utils {
 	 * Medicament15={Medicament15, dateExpi=2010-06-01, qte=57}, 
 	 * Medicament17={Medicament17, dateExpi=2012-01-01, qte=37; Medicament17, dateExpi=2016-10-01, qte=54}, 
 	 * 
-	 * Ici n = 5, p = 2 
+	 * Ici n = 5, p = 2
+	 * n * p = 10 (sur estimation) 
+	 * q = 7 
 	 * 
-	 * Il s'agit d'un parcours simple (une fois) sur chacun des n*p éléments. 
+	 * Il s'agit d'un parcours simple (une fois) sur chacun des q éléments. 
 	 * Les autres opérations sont de complexité constante, grace à l'utilisation de l'itérateur. 
 	 * 
 	 * @param stock
 	 * @param date
-	 * @return
+	 * @return String médicament en stock
 	 */
 	public static String jeterPerimesEtAfficher(TreeMap<String, TreeMap<Medicament, Integer>> stock, Date date) {
-		String stockToPrint = "STOCK " + date + "\n";
+		StringBuilder stockToPrint = new StringBuilder();
+		stockToPrint.append("STOCK " + date + "\n");
 
 		// parcourir tous les médicaments et comparer la date
 		Iterator<Entry<String, TreeMap<Medicament, Integer>>> itrStock = stock.entrySet().iterator();
@@ -187,19 +189,19 @@ public class Utils {
 				if (dateExpiStock.estAvant(date)) { // si périmé, supprimer 
 					itrMedicament.remove(); // Complexité : O(1), car on est déjà dessus 
 				} else { //sinon afficher le medicament
-					stockToPrint += nomMed + " " + stockMedicament.getValue() + " " + dateExpiStock + "\n";
+					stockToPrint.append(nomMed + " " + stockMedicament.getValue() + " " + dateExpiStock + "\n");
 				}
 			}
 			if (mapMedsAvecMemeNom.isEmpty()){
 				itrStock.remove(); // O(1)
 			} 
 		}
-		return stockToPrint;
+		return stockToPrint.toString();
 	}
 
 	/***
 	 * APPROV
-	 * Lire chaque ligne du type A (APPROV), instancier et ajouter le Médicament au stock
+	 * Lire une ligne du type 'A' (APPROV), instancier et ajouter le Médicament au stock
 	 * 
 	 * Complexité de cette fonction seule (pour une seule ligne, donc un seul médicament lu) : 
 	 * O(logN) à cause des opérations de .get et/ou .put dans une Map et aucune boucle
@@ -235,7 +237,7 @@ public class Utils {
 
 	/***
 	 * PRESCRIPTION
-	 * Parser la liste de médicaments prescrits, soustraire des stocks, ou commander si besoin
+	 * Parser une ligne de médicament préscrit, soustraire des stocks (si suffisament en date et en stock), ou commander si besoin
 	 * 
 	 * Complexité de cette fonction seule : O(p + log(k) + log(n)) car recherche dichotomique 
 	 * dans n types de médicaments du stock, recherche dichotomique dans les k commandes, 
@@ -248,7 +250,7 @@ public class Utils {
 	 * @param dateCour
 	 * @param stock
 	 * @param commandes
-	 * @return
+	 * @return String médicament préscrit résultat
 	 */
 	public static String lirePrescriptions(String lineALire, Date dateCour, TreeMap<String, TreeMap<Medicament, Integer>> stock, TreeMap<String, Integer> commandes){
 
@@ -259,8 +261,8 @@ public class Utils {
 		int nbReps = Integer.parseInt(colPrescri[2]); // eg. 6
 		int qteTotaleBesoin = qteParCycle * nbReps; // 5x6 = 30
 		Date besoinJusquau = dateCour.dateApresXJours(qteTotaleBesoin);
-
-		String toPrint = "";
+		
+		StringBuilder stringBuilder = new StringBuilder();
 		boolean besoinCommander = true;
 
 		if (stock.containsKey(nomMedicament)){ // si medicament existe. Complexité O(logN) car recherche dichotomique
@@ -272,7 +274,7 @@ public class Utils {
 				Date dateExpiMedicamentStock =  nextMed.getKey().getDateExpi(); // Complexité : on est déjà dessus, donc O(1) 
 				int qteEnStock = nextMed.getValue();
 
-				// si en date ET qte suffisante pour prendre tout ce qu'il nous faut (il faut tout prendre du meme lot)
+				// si en date ET quantite suffisante pour prendre tout ce qu'il nous faut (il faut tout prendre du meme lot)
 				if (besoinJusquau.estAvant(dateExpiMedicamentStock) && (qteEnStock > qteTotaleBesoin)) {
 					// on decremente le stock 
 					nextMed.setValue(qteEnStock - qteTotaleBesoin); // Complexité : on est déjà dessus, donc O(1) 
@@ -293,7 +295,7 @@ public class Utils {
 		// Complexité (de cette partie ci dessous) de O(logk) 
 		if (besoinCommander == true) {
 			// si med existe déjà sur liste de commandes, rajouter par dessus
-			if (commandes.containsKey(nomMedicament)) { // Complexité : besoin de trouver l'élément dans une TreeMep donc O(log(k)) 
+			if (commandes.containsKey(nomMedicament)) { // Complexité : besoin de retrouver l'élément dans une TreeMep donc O(log(k)) 
 				int totalDejaSurCommande = commandes.get(nomMedicament);
 				commandes.put(nomMedicament, qteTotaleBesoin + totalDejaSurCommande); // Complexité .put() : O(log(k))  
 			} else {
@@ -302,8 +304,8 @@ public class Utils {
 		}
 
 		String indicateurCommande = besoinCommander ? "COMMANDE" : "OK";
-		toPrint += nomMedicament + " " + qteParCycle + " " + nbReps + " " + indicateurCommande + "\n"; 
-		return toPrint;
+		stringBuilder.append(nomMedicament + " " + qteParCycle + " " + nbReps + " " + indicateurCommande + "\n"); 
+		return stringBuilder.toString();
 	}
 
 

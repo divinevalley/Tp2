@@ -5,10 +5,12 @@ import java.util.TreeSet;
 /***
  * IFT2015, TP2 : Gestion des stocks d’une pharmacie
  * Eté 2023
+ * 10 juillet 2023
  * 
  * @param args[0] représente le fichier d'entrée (par exemple "exemple5.txt"), 
  * et args[1] représente le nom désiré pour le fichier de sortie créé (par ex. "exemple5+.txt")  
  * @author Deanna WUNG, Océane HAYS
+ * 
  *
  */
 public class Tp2 {
